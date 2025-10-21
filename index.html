@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ADTEMPCO COOPMART — Accounting (Pro)</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f6f7fb;--panel:#fff;--muted:#6b7280;--primary:#243b53;--accent:#b58b2d;--accent-2:#1f6fb6;--danger:#cc3e3e;--good:#17893a;--radius:12px;--shadow:0 10px 30px rgba(23,38,51,0.08);--sidebar-w:260px;--card-pad:16px;--gutter:14px;--transition:300ms}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter, "Segoe UI", Roboto, Arial;background:linear-gradient(180deg,#eef3fb,#f6f7fb);color:var(--primary);-webkit-font-smoothing:antialiased}
+header{position:fixed;left:0;right:0;top:0;height:70px;background:linear-gradient(90deg,var(--primary),var(--accent-2));color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 18px;z-index:300;box-shadow:var(--shadow)}
+.brand{display:flex;flex-direction:column}
+.brand h1{margin:0;font-size:18px}
+.brand .sub{font-size:12px;opacity:0.95}
+.top-controls{display:flex;gap:10px;align-items:center}
+.btn{background:var(--accent);color:#fff;border:0;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700;transition:transform .12s}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.12);color:#fff}
+.btn.small{padding:6px 10px;font-size:13px}
+.app{display:flex;padding-top:70px;min-height:calc(100vh - 70px)}
+aside{width:var(--sidebar-w);background:linear-gradient(180deg,#11222f,#133a57);color:#fff;padding:16px;position:fixed;left:0;top:70px;bottom:0}
+.nav-item{padding:10px;border-radius:10px;cursor:pointer;margin-bottom:8px;font-weight:800;display:flex;align-items:center;gap:10px}
+.nav-item.active{background:rgba(255,255,255,0.06)}
+main{margin-left:var(--sidebar-w);flex:1;padding:22px;overflow:auto}
+.card{background:var(--panel);padding:var(--card-pad);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px}
+h2{margin:0 0 8px 0;color:var(--primary);font-weight:800}
+.flex{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.muted-note{font-size:13px;color:#8b9fb5}
+input,select,textarea{padding:10px;border-radius:10px;border:1px solid #e6eef8;font-size:14px;width:100%;transition:box-shadow .12s}
+textarea{min-height:70px;resize:vertical;padding:12px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{padding:12px;border-bottom:1px solid #f1f6fb;text-align:left}
+th{background:linear-gradient(180deg,#fbfdff,#f7fbff)}
+.right{text-align:right}
+.small{font-size:13px;color:var(--muted)}
+.toast{position:fixed;right:18px;bottom:18px;background:linear-gradient(90deg,var(--primary),var(--accent-2));color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transform:translateY(12px);transition:all .3s}
+.toast.show{opacity:1;transform:translateY(0)}
+.modal-backdrop{position:fixed;left:0;right:0;top:0;bottom:0;background:rgba(3,12,25,0.46);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .18s}
+.modal-backdrop.show{opacity:1;pointer-events:auto}
+.modal{background:white;border-radius:12px;padding:14px;min-width:320px;max-width:900px;box-shadow:0 16px 48px rgba(3,12,25,0.3)}
+.modal .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.page{opacity:0;transform:translateY(8px);transition:opacity var(--transition) ease, transform var(--transition) ease;pointer-events:none;height:0;overflow:hidden}
+.page.active{opacity:1;transform:none;pointer-events:auto;height:auto}
+.report-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.report-title{font-size:20px;font-weight:900;margin:0}
+.report-sub{color:#6b7280;font-size:13px;margin-top:4px}
+.report-card{background:#fbfcfd;border:1px solid #eef3f9;border-radius:10px;padding:18px;margin-top:12px}
+.section-title{font-weight:800;margin:12px 0 6px 0;background:linear-gradient(90deg,#fff,#fbfbff);padding:8px;border-radius:6px}
+.footer-sigs{display:flex;gap:12px;margin-top:18px;align-items:flex-start;flex-wrap:wrap}
+.sig-box{flex:1;min-width:180px;background:#fff;border:1px solid #f1f6fb;padding:10px;border-radius:8px}
+.sig-box input{border:0;outline:none;width:100%;font-weight:700}
+.sig-label{font-size:12px;color:#6b7280;margin-bottom:6px}
+.variance-positive{color:var(--good);font-weight:800}
+.variance-negative{color:var(--danger);font-weight:800}
+.print-hidden{display:none}
+@media (max-width:920px){aside{width:72px}main{margin-left:72px;padding:16px}.nav-item span{display:none}.footer-sigs{flex-direction:column}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>ADTEMPCO COOPMART</h1>
+    <div class="sub small">Manabo, San Juan Norte, Abra</div>
+  </div>
+  <div class="top-controls">
+    <button id="alertBtn" class="btn small ghost" title="Alerts">🔔 Alerts</button>
+    <div id="userDisplay" class="small">Not signed in</div>
+    <button id="btnLogout" class="btn small" style="display:none">Sign Out</button>
+  </div>
+</header>
+<div class="app">
+  <aside>
+    <div class="nav-item active" data-sec="page-dashboard" onclick="navigate(event)">🏠 <span>Dashboard</span></div>
+    <div class="nav-item" data-sec="page-accounts" onclick="navigate(event)">📘 <span>Accounts</span></div>
+    <div class="nav-item" data-sec="page-journal" onclick="navigate(event)">🧾 <span>Journal</span></div>
+    <div class="nav-item" data-sec="page-ledger" onclick="navigate(event)">📖 <span>Ledger</span></div>
+    <div class="nav-item" data-sec="page-reports" onclick="navigate(event)">📑 <span>Reports</span></div>
+    <div class="nav-item" data-sec="page-clients" onclick="navigate(event)">👥 <span>Clients</span></div>
+    <div style="margin-top:auto"></div>
+    <div class="nav-item" data-sec="page-settings" onclick="navigate(event)">⚙️ <span>Settings</span></div>
+  </aside>
+  <main>
+    <div id="authCardWrapper" class="card" style="max-width:980px;margin:18px auto;">
+      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+        <div id="loginForm" style="flex:1;min-width:320px">
+          <h2>Sign In</h2>
+          <div class="muted-note">Use your Firebase email and password</div>
+          <div style="display:flex;gap:12px;margin-top:12px;align-items:center">
+            <div style="flex:1"><label>Email</label><input id="loginEmail" placeholder="you@company.com"></div>
+            <div style="width:200px"><label>Password</label><input id="loginPassword" type="password" placeholder="password"></div>
+            <div style="width:140px;display:flex;flex-direction:column;gap:8px">
+              <button id="btnLoginMain" class="btn">Login</button>
+              <button id="showRegister" class="btn small ghost">Create account</button>
+            </div>
+          </div>
+          <div id="loginMsg" class="small" style="margin-top:10px;color:var(--danger)"></div>
+        </div>
+        <div id="registerForm" style="flex:1;min-width:320px;display:none">
+          <h2>Create Account</h2>
+          <div class="muted-note">Register (role saved in DB)</div>
+          <div style="display:flex;gap:12px;margin-top:12px;align-items:center">
+            <div style="flex:1"><label>Email</label><input id="regEmail" placeholder="you@company.com"></div>
+            <div style="width:200px"><label>Password</label><input id="regPassword" type="password" placeholder="password"></div>
+            <div style="width:160px">
+              <label>Role</label>
+              <select id="regRole"><option>Cashier</option><option>Manager</option><option>Admin</option></select>
+            </div>
+            <div style="width:140px;display:flex;flex-direction:column;gap:8px">
+              <button id="btnRegisterMain" class="btn">Register</button>
+              <button id="showLogin" class="btn small ghost">Back to Login</button>
+            </div>
+          </div>
+          <div id="regMsg" class="small" style="margin-top:10px;color:var(--danger)"></div>
+        </div>
+      </div>
+    </div>
+    <div id="page-dashboard" class="page active">
+      <section class="card">
+        <h2>Dashboard</h2>
+        <div class="flex" style="gap:16px">
+          <div class="card" style="flex:1;min-width:200px"><h3>Total Revenue</h3><div id="dashRevenue" style="font-weight:900">0.00</div></div>
+          <div class="card" style="flex:1;min-width:200px"><h3>Total Expense</h3><div id="dashExpense" style="font-weight:900">0.00</div></div>
+          <div class="card" style="flex:1;min-width:200px"><h3>Net Income</h3><div id="dashNet" style="font-weight:900">0.00</div></div>
+        </div>
+      </section>
+    </div>
+    <div id="page-accounts" class="page">
+      <section class="card">
+        <h2>Chart of Accounts</h2>
+        <div class="flex">
+          <div style="flex:2"><input id="accName" placeholder="Account name"></div>
+          <div style="width:180px"><select id="accType"><option>Asset</option><option>Liability</option><option>Equity</option><option>Revenue</option><option>Expense</option></select></div>
+          <div style="width:160px"><button id="addAccBtn" class="btn">Add Account</button></div>
+        </div>
+        <div style="margin-top:12px"><table id="accTable"><thead><tr><th>Name</th><th>Type</th></tr></thead><tbody></tbody></table></div>
+      </section>
+    </div>
+    <div id="page-journal" class="page">
+      <section class="card">
+        <h2>Journal Entries</h2>
+        <div class="flex" style="margin-bottom:8px">
+          <div style="width:160px"><input id="jeDate" type="date"></div>
+          <div style="flex:1"><input id="jeHdr" placeholder="Entry reference / header"></div>
+          <div style="width:160px"><button id="addLineBtn" class="btn">➕ Add Line</button></div>
+          <div style="width:160px"><button id="saveJEBtn" class="btn">Save Entry</button></div>
+        </div>
+        <div style="text-align:center;margin:16px 0;">
+          <textarea id="mainDesc" placeholder="Main entry description (large, centered) — will populate blank line descriptions"></textarea>
+        </div>
+        <div class="card" style="padding:6px">
+          <table id="journalLinesTable">
+            <thead><tr><th>Account</th><th>Description (optional)</th><th>Client</th><th class="right">Debit</th><th class="right">Credit</th><th></th></tr></thead>
+            <tbody id="journalLinesBody"></tbody>
+            <tfoot><tr><th colspan="3" class="right">Total</th><th class="right" id="totalDebit">0.00</th><th class="right" id="totalCredit">0.00</th><th></th></tr></tfoot>
+          </table>
+        </div>
+        <div style="margin-top:12px">
+          <h4>Saved Journal Entries</h4>
+          <div style="overflow:auto"><table id="journalTable"><thead><tr><th>Date</th><th>Ref</th><th>Main Description</th><th class="right">Debit</th><th class="right">Credit</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+    </div>
+    <div id="page-ledger" class="page">
+      <section class="card"><h2>General Ledger</h2><div style="overflow:auto"><table id="ledgerTable"><thead><tr><th>Account</th><th class="right">Debit</th><th class="right">Credit</th><th class="right">Balance</th></tr></thead><tbody></tbody></table></div></section>
+    </div>
+    <div id="page-reports" class="page">
+      <section class="card">
+        <div class="report-header">
+          <div>
+            <div style="font-weight:900">ADTEMPCO COOPMART MANABO</div>
+            <div class="small">San Juan Norte Manabo Abra 2810</div>
+            <h2 class="report-title" id="reportMainTitle">Balance Sheet</h2>
+            <div class="report-sub" id="reportSubTitle">As of —</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="display:flex;gap:8px;align-items:center">
+              <label class="small">Month 1</label>
+              <select id="filterMonth1" style="min-width:160px"></select>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-left:6px">
+              <label class="small">Month 2</label>
+              <select id="filterMonth2" style="min-width:160px"></select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-left:8px">
+              <div style="display:flex;gap:8px">
+                <button id="btnReportTrial" class="btn small">Trial Balance</button>
+                <button id="btnReportIncome" class="btn small">Income Statement</button>
+                <button id="btnReportBalance" class="btn small">Balance Sheet</button>
+              </div>
+              <div style="display:flex;gap:8px;justify-content:flex-end">
+                <button id="exportReportCSV" class="btn small">Export CSV</button>
+                <button id="exportReportPDF" class="btn small">Export PDF</button>
+                <button id="printReport" class="btn small">Print</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="reportArea" class="report-card"></div>
+      </section>
+    </div>
+    <div id="page-clients" class="page">
+      <section class="card"><h2>Clients & Subsidiaries</h2>
+        <div class="flex">
+          <div style="flex:1"><input id="clientName" placeholder="Client name"></div>
+          <div style="width:180px"><select id="clientType"><option>Customer</option><option>Supplier</option><option>Other</option></select></div>
+          <div style="width:160px"><button id="addClientBtn" class="btn">Add Client</button></div>
+        </div>
+        <div style="margin-top:12px"><table id="clientTable"><thead><tr><th>Name</th><th>Type</th></tr></thead><tbody></tbody></table></div>
+      </section>
+    </div>
+    <div id="page-settings" class="page">
+      <section class="card">
+        <h2>Settings & Admin</h2>
+        <div class="small muted-note">Backup, restore, Firebase sync, user management and Alerts (admin)</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
+          <button id="backupDownloadBtn" class="btn">Download Backup</button>
+          <input id="restoreInput" type="file" accept=".json" style="display:none"/>
+          <button id="restoreLocalBtn" class="btn">Restore from File</button>
+        </div>
+        <div style="margin-top:18px">
+          <h3>Admin Alerts Panel</h3>
+          <div class="small muted-note">Admins can post alerts that will appear to all users in real-time. Optionally check "Send email copy".</div>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:10px">
+            <input id="alertTitle" placeholder="Alert title" style="flex:1"/>
+            <input id="alertLevel" placeholder="Level (info/warning/urgent)" style="width:200px"/>
+            <label style="display:flex;align-items:center;gap:8px"><input id="alertSendEmail" type="checkbox"> Send email copy</label>
+            <button id="postAlertBtn" class="btn">Post Alert</button>
+          </div>
+          <div style="margin-top:10px">
+            <textarea id="alertBody" placeholder="Alert body / message" style="width:100%;min-height:90px"></textarea>
+          </div>
+          <div id="adminAlertMsg" class="small" style="margin-top:8px;color:var(--danger)"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<div id="modalBackdrop" class="modal-backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3>Alerts</h3>
+    <div id="alertsList" style="max-height:360px;overflow:auto;margin-top:8px"></div>
+    <div class="modal-actions">
+      <button id="dismissAlerts" class="btn ghost">Dismiss</button>
+      <button id="ackAlerts" class="btn">Acknowledge All</button>
+    </div>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyClll9_JhRWkGUzG5lZkS82btporO6Ggr4",
+  authDomain: "pos-version-1.firebaseapp.com",
+  databaseURL: "https://pos-version-1-default-rtdb.firebaseio.com",
+  projectId: "pos-version-1",
+  storageBucket: "pos-version-1.firebasestorage.app",
+  messagingSenderId: "555936348301",
+  appId: "1:555936348301:web:04107489a6e2ca90710ac4",
+  measurementId: "G-BP4TZQRF76"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const rdb = firebase.database();
+const $ = id => document.getElementById(id);
+const esc = s => s==null?'':String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n||0).toFixed(2);
+const today = () => new Date().toISOString().slice(0,10);
+let accounts = JSON.parse(localStorage.getItem('ae_accounts')||'null') || [{id:'acc_cash',name:'Cash',type:'Asset'},{id:'acc_sales',name:'Sales',type:'Revenue'},{id:'acc_exp',name:'Expenses',type:'Expense'}];
+let clients = JSON.parse(localStorage.getItem('ae_clients')||'null') || [];
+let journal = JSON.parse(localStorage.getItem('ae_journal')||'null') || [];
+let lastRef = parseInt(localStorage.getItem('ae_lastref')||'0') || 0;
+let signatures = JSON.parse(localStorage.getItem('ae_signatures')||'null') || {prepared:'',checked:'',approved:''};
+let currentUser = null;
+let currentReport = 'balance';
+let unseenAlerts = 0;
+function navigate(e){
+  const el = e.currentTarget || e;
+  const target = el.dataset ? el.dataset.sec : el.getAttribute('data-sec');
+  document.querySelectorAll('aside .nav-item').forEach(n=> n.classList.remove('active'));
+  document.querySelectorAll('aside .nav-item').forEach(n=> { if(n.dataset.sec === target) n.classList.add('active'); });
+  document.querySelectorAll('.page').forEach(p=> p.classList.remove('active'));
+  setTimeout(()=> {
+    const page = $(target);
+    if(page) page.classList.add('active');
+    if(target==='page-accounts') renderAccounts();
+    if(target==='page-journal'){ if(document.querySelectorAll('#journalLinesBody tr').length===0){ addLineRow(); addLineRow(); } renderJournalTable(); updateTotals(); populateLineAccountSelects(); populateLineClientSelects(); }
+    if(target==='page-ledger') renderLedger();
+    if(target==='page-reports'){ populateMonthFilters(); switchReport(currentReport); }
+    if(target==='page-clients') renderClients();
+    if(target==='page-settings') renderSettings();
+  }, 10);
+}
+function showToast(msg, isError=false){
+  const t = $('toast');
+  t.textContent = msg;
+  t.style.background = isError ? 'linear-gradient(90deg,#cc3e3e,#a22b2b)' : 'linear-gradient(90deg,var(--primary),var(--accent-2))';
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 3200);
+}
+$('showRegister').addEventListener('click', ()=> { $('loginForm').style.display='none'; $('registerForm').style.display='block'; });
+$('showLogin').addEventListener('click', ()=> { $('registerForm').style.display='none'; $('loginForm').style.display='block'; });
+$('btnRegisterMain').addEventListener('click', async ()=>{
+  const email = $('regEmail').value.trim(); const pw = $('regPassword').value; const role = $('regRole').value;
+  if(!email || !pw){ $('regMsg').textContent='Enter email & password'; return; }
+  try{
+    const cred = await auth.createUserWithEmailAndPassword(email, pw);
+    await rdb.ref('users/' + cred.user.uid).set({ email, role, createdAt: new Date().toISOString() });
+    showToast('Registered — please sign in');
+    $('registerForm').style.display='none'; $('loginForm').style.display='block'; $('regMsg').textContent='';
+  }catch(err){ console.error(err); $('regMsg').textContent = err.message || 'Register failed'; }
+});
+$('btnLoginMain').addEventListener('click', async ()=>{
+  const email = $('loginEmail').value.trim(); const pw = $('loginPassword').value;
+  if(!email || !pw){ $('loginMsg').textContent='Enter email & password'; return; }
+  try{ await auth.signInWithEmailAndPassword(email, pw); $('loginMsg').textContent=''; } catch(err){ console.error(err); $('loginMsg').textContent = err.message || 'Login failed'; }
+});
+$('btnLogout').addEventListener('click', ()=> auth.signOut().then(()=> { showToast('Signed out'); $('btnLogout').style.display='none'; $('authCardWrapper').style.display='block'; document.querySelectorAll('.page').forEach(p=> p.classList.remove('active')); $('page-dashboard').classList.add('active'); }).catch(e=> console.error(e)));
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    try{
+      const snap = await rdb.ref('users/' + user.uid).get();
+      const profile = snap.exists() ? snap.val() : null;
+      const role = profile?.role || 'Cashier';
+      currentUser = { uid: user.uid, email: user.email, role };
+      $('userDisplay').textContent = `${user.email} • ${role}`;
+      $('authCardWrapper').style.display = 'none';
+      $('btnLogout').style.display = 'inline-flex';
+      if(currentUser.role !== 'Admin'){
+        document.querySelectorAll('#postAlertBtn, #alertTitle, #alertBody, #alertLevel, #alertSendEmail, #backupDownloadBtn, #restoreLocalBtn, #restoreInput').forEach(el=>{ if(el) el.style.display='none'; });
+      } else {
+        document.querySelectorAll('#postAlertBtn, #alertTitle, #alertBody, #alertLevel, #alertSendEmail, #backupDownloadBtn, #restoreLocalBtn, #restoreInput').forEach(el=>{ if(el) el.style.display=''; });
+      }
+      document.querySelectorAll('.page').forEach(p=> p.classList.remove('active'));
+      $('page-dashboard').classList.add('active');
+      renderAll();
+      showToast('Welcome ' + user.email);
+    }catch(e){ console.error(e); showToast('Failed to load profile', true); }
+  } else {
+    currentUser = null;
+    $('userDisplay').textContent = 'Not signed in';
+    $('authCardWrapper').style.display = 'block';
+    $('btnLogout').style.display = 'none';
+    document.querySelectorAll('#postAlertBtn, #alertTitle, #alertBody, #alertLevel, #alertSendEmail, #backupDownloadBtn, #restoreLocalBtn, #restoreInput').forEach(el=>{ if(el) el.style.display='none'; });
+  }
+});
+$('addAccBtn').addEventListener('click', ()=> {
+  if(!currentUser){ showToast('Login required', true); return; }
+  if(currentUser.role==='Cashier'){ showToast('Not allowed: insufficient role', true); return; }
+  const name = $('accName').value.trim(); const type = $('accType').value;
+  if(!name){ showToast('Enter account name', true); return; }
+  if(accounts.find(a=> a.name===name)){ showToast('Account exists', true); return; }
+  accounts.push({id:'acc_'+Date.now(), name, type});
+  localStorage.setItem('ae_accounts', JSON.stringify(accounts)); renderAccounts(); $('accName').value=''; showToast('Account added');
+});
+function renderAccounts(){ const tb = $('accTable').querySelector('tbody'); tb.innerHTML=''; accounts.forEach(a=> tb.insertAdjacentHTML('beforeend', `<tr><td>${esc(a.name)}</td><td>${esc(a.type)}</td></tr>`)); populateMonthFilters(); populateLineAccountSelects(); }
+$('addClientBtn').addEventListener('click', ()=> {
+  if(!currentUser){ showToast('Login required', true); return; }
+  const name = $('clientName').value.trim(); const type = $('clientType').value;
+  if(!name){ showToast('Enter client name', true); return; }
+  const id = 'cli_'+Date.now();
+  clients.push({id,name,type,contact:''});
+  localStorage.setItem('ae_clients', JSON.stringify(clients)); renderClients(); $('clientName').value=''; showToast('Client added');
+});
+function renderClients(){ const tb = $('clientTable').querySelector('tbody'); tb.innerHTML=''; clients.forEach(c=> tb.insertAdjacentHTML('beforeend', `<tr><td>${esc(c.name)}</td><td>${esc(c.type)}</td></tr>`)); populateLineClientSelects(); }
+function populateLineAccountSelects(){ document.querySelectorAll('.line-account-select').forEach(s=>{ const cur = s.value; s.innerHTML = accounts.map(a=> `<option value="${esc(a.name)}">${esc(a.name)} — ${esc(a.type)}</option>`).join(''); if(cur) s.value=cur; }); }
+function populateLineClientSelects(){ document.querySelectorAll('.line-client-select').forEach(s=>{ const cur = s.value; s.innerHTML = '<option value="">— None —</option>' + clients.map(c=> `<option value="${c.id}">${esc(c.name)}</option>`).join(''); if(cur) s.value = cur; }); }
+function addLineRow(account='',desc='',clientId='',debit='',credit=''){
+  const tbody = $('journalLinesBody'); const tr = document.createElement('tr');
+  tr.innerHTML = `<td><select class="line-account-select"></select></td>
+    <td><textarea class="line-desc" placeholder="Line description">${esc(desc)}</textarea></td>
+    <td><select class="line-client-select"></select></td>
+    <td class="right"><input class="line-debit" type="number" step="0.01" style="text-align:right" value="${esc(debit)}"></td>
+    <td class="right"><input class="line-credit" type="number" step="0.01" style="text-align:right" value="${esc(credit)}"></td>
+    <td style="text-align:center"><button class="btn small btn-remove">Remove</button></td>`;
+  tbody.appendChild(tr);
+  populateLineAccountSelects(); populateLineClientSelects();
+  if(account) tr.querySelector('.line-account-select').value = account;
+  if(clientId) tr.querySelector('.line-client-select').value = clientId;
+  tr.querySelectorAll('input, select, textarea').forEach(i=> i.addEventListener('input', updateTotals));
+  tr.querySelector('.btn-remove').addEventListener('click', ()=>{ tr.remove(); updateTotals(); });
+  const ta = tr.querySelector('.line-desc');
+  ta.addEventListener('input', ()=> { ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 8) + 'px'; });
+  ta.style.height = (ta.scrollHeight + 8) + 'px';
+  updateTotals();
+}
+$('addLineBtn').addEventListener('click', ()=> addLineRow());
+function updateTotals(){
+  const debit = Array.from(document.querySelectorAll('.line-debit')).reduce((s,i)=> s + (parseFloat(i.value)||0), 0);
+  const credit = Array.from(document.querySelectorAll('.line-credit')).reduce((s,i)=> s + (parseFloat(i.value)||0), 0);
+  $('totalDebit').textContent = fmt(debit); $('totalCredit').textContent = fmt(credit);
+  if(Math.abs(debit-credit) > 0.005){ $('totalDebit').style.color='var(--danger)'; $('totalCredit').style.color='var(--danger)'; } else { $('totalDebit').style.color=''; $('totalCredit').style.color=''; }
+  renderLedger();
+}
+function genRef(){ lastRef = (lastRef||0)+1; localStorage.setItem('ae_lastref', String(lastRef)); return 'JRN-'+String(lastRef).padStart(4,'0'); }
+$('saveJEBtn').addEventListener('click', saveJournalEntry);
+function saveJournalEntry(){
+  if(!currentUser){ showToast('Login required', true); return; }
+  const dateRaw = $('jeDate').value || today();
+  const dateISO = new Date(dateRaw);
+  const hdr = $('jeHdr').value.trim();
+  const mainDesc = $('mainDesc').value.trim();
+  const rows = Array.from(document.querySelectorAll('#journalLinesBody tr'));
+  if(rows.length===0){ showToast('Add lines', true); return; }
+  const monthText = dateISO.toLocaleString(undefined,{month:'long', year:'numeric'});
+  let td=0, tc=0;
+  const ref = genRef();
+  const push = [];
+  for(const r of rows){
+    const acc = r.querySelector('.line-account-select')?.value||'';
+    const desc = (r.querySelector('.line-desc')?.value.trim() || mainDesc || hdr);
+    const clientId = r.querySelector('.line-client-select')?.value || '';
+    const d = parseFloat(r.querySelector('.line-debit')?.value||0)||0;
+    const c = parseFloat(r.querySelector('.line-credit')?.value||0)||0;
+    if(!acc){ showToast('Each line must have an account', true); return; }
+    td += d; tc += c;
+    push.push({ id:'j_'+Date.now()+'_'+Math.floor(Math.random()*999), ref, date: dateRaw, month: monthText, account: acc, desc, debit: d, credit: c, clientId, mainDesc, createdBy: currentUser.uid });
+  }
+  if(Math.abs(td-tc) > 0.005){ showToast('Debits and credits must be equal', true); return; }
+  journal.push(...push);
+  localStorage.setItem('ae_journal', JSON.stringify(journal));
+  $('mainDesc').value = '';
+  $('journalLinesBody').innerHTML=''; addLineRow(); addLineRow(); renderJournalTable(); renderAll();
+  showToast('Journal saved: ' + ref);
+}
+function renderJournalTable(){
+  const tb = $('journalTable').querySelector('tbody'); tb.innerHTML='';
+  const grouped = {};
+  for(const j of journal){ grouped[j.ref] = grouped[j.ref] || { ref:j.ref, date:j.date, lines: [] }; grouped[j.ref].lines.push(j); }
+  const arr = Object.values(grouped).sort((a,b)=> b.date.localeCompare(a.date));
+  arr.forEach(g=>{
+    const d = g.lines.reduce((s,l)=> s+(l.debit||0),0); const c = g.lines.reduce((s,l)=> s+(l.credit||0),0);
+    const main = g.lines[0]?.mainDesc || g.lines.map(x=>x.desc).join('; ');
+    tb.insertAdjacentHTML('beforeend', `<tr><td>${esc(g.date)}</td><td>${esc(g.ref)}</td><td>${esc(main)}</td><td class="right">${fmt(d)}</td><td class="right">${fmt(c)}</td><td><button class="btn small" onclick="viewJournal('${g.ref}')">View</button></td></tr>`);
+  });
+}
+function viewJournal(ref){
+  const lines = journal.filter(j=> j.ref===ref);
+  let html = `<h3>Journal ${esc(ref)}</h3><table style="width:100%;border-collapse:collapse"><thead><tr><th>Date</th><th>Account</th><th>Description</th><th>Client</th><th>Debit</th><th>Credit</th></tr></thead><tbody>`;
+  lines.forEach(l=>{
+    const clientName = l.clientId? (clients.find(c=> c.id===l.clientId)?.name || '') : '';
+    html += `<tr><td>${esc(l.date)}</td><td>${esc(l.account)}</td><td>${esc(l.desc||'')}</td><td>${esc(clientName)}</td><td class="right">${fmt(l.debit)}</td><td class="right">${fmt(l.credit)}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  const w = window.open('','_blank','width=900,height=600'); w.document.write(html); w.document.close();
+}
+function renderLedger(){
+  const tb = $('ledgerTable').querySelector('tbody'); tb.innerHTML='';
+  accounts.forEach(a=>{
+    const es = journal.filter(j=> j.account===a.name);
+    const d = es.reduce((s,e)=> s + (e.debit||0), 0);
+    const c = es.reduce((s,e)=> s + (e.credit||0), 0);
+    tb.insertAdjacentHTML('beforeend', `<tr><td>${esc(a.name)}</td><td class="right">${fmt(d)}</td><td class="right">${fmt(c)}</td><td class="right">${fmt(d-c)}</td></tr>`);
+  });
+}
+function availableMonthsText(){
+  const set = new Set(journal.map(j=> j.month).filter(Boolean));
+  const arr = Array.from(set).map(m=>{
+    const dd = new Date('1 ' + m);
+    return {text:m, date: isNaN(dd)? new Date(0): dd};
+  }).sort((a,b)=> a.date - b.date).map(x=>x.text);
+  return arr;
+}
+function totalsByAccountForMonthText(monthText){
+  const map = {};
+  accounts.forEach(a=> map[a.name] = { debit:0, credit:0, net:0 });
+  journal.filter(j=> j.month === monthText).forEach(j=>{
+    if(!map[j.account]) map[j.account] = {debit:0,credit:0,net:0};
+    map[j.account].debit += j.debit || 0;
+    map[j.account].credit += j.credit || 0;
+    map[j.account].net += ((j.credit || 0) - (j.debit || 0));
+  });
+  return map;
+}
+function varianceCellHtml(val){
+  if(val > 0) return `<td class="right variance-positive">${fmt(val)}</td>`;
+  if(val < 0) return `<td class="right variance-negative">${fmt(val)}</td>`;
+  return `<td class="right">${fmt(val)}</td>`;
+}
+function populateMonthFilters(){
+  const sel1 = $('filterMonth1'); const sel2 = $('filterMonth2');
+  const months = availableMonthsText();
+  sel1.innerHTML = '<option value="">Select month</option>'; sel2.innerHTML = '<option value="">Select month</option>';
+  months.forEach(m => { sel1.insertAdjacentHTML('beforeend', `<option value="${m}">${m}</option>`); sel2.insertAdjacentHTML('beforeend', `<option value="${m}">${m}</option>`); });
+}
+function switchReport(reportKey){
+  currentReport = reportKey;
+  if(reportKey === 'trial') $('reportMainTitle').textContent = 'Trial Balance';
+  if(reportKey === 'income') $('reportMainTitle').textContent = 'Income Statement';
+  if(reportKey === 'balance') $('reportMainTitle').textContent = 'Balance Sheet';
+  const m1 = $('filterMonth1')?.value; const m2 = $('filterMonth2')?.value;
+  $('reportSubTitle').textContent = (m1 && m2) ? `${m1} vs ${m2}` : 'Select two months to compare';
+  renderReport();
+}
+function renderReport(){
+  const area = $('reportArea'); area.innerHTML = '';
+  const m1 = $('filterMonth1')?.value || null;
+  const m2 = $('filterMonth2')?.value || null;
+  const map1 = m1 ? totalsByAccountForMonthText(m1) : {};
+  const map2 = m2 ? totalsByAccountForMonthText(m2) : {};
+  if(currentReport === 'trial'){
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `<div style="overflow:auto"><table><thead><tr><th>Account</th><th class="right">${m1 || 'Month 1'}</th><th class="right">${m2 || 'Month 2'}</th><th class="right">Variance</th></tr></thead><tbody></tbody></table></div>`;
+    const tbody = wrap.querySelector('tbody');
+    accounts.forEach(a=>{
+      const v1 = m1 ? ((map1[a.name]?.credit||0) - (map1[a.name]?.debit||0)) : 0;
+      const v2 = m2 ? ((map2[a.name]?.credit||0) - (map2[a.name]?.debit||0)) : 0;
+      const variance = v2 - v1;
+      tbody.insertAdjacentHTML('beforeend', `<tr><td>${esc(a.name)}</td><td class="right">${fmt(v1)}</td><td class="right">${fmt(v2)}</td>${varianceCellHtml(variance)}</tr>`);
+    });
+    area.appendChild(wrap);
+  } else if(currentReport === 'income'){
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `<div style="overflow:auto"><table><thead><tr><th>Account</th><th class="right">${m1 || 'Month 1'}</th><th class="right">${m2 || 'Month 2'}</th><th class="right">Variance</th></tr></thead><tbody></tbody></table></div>`;
+    const tbody = wrap.querySelector('tbody');
+    const rev = accounts.filter(a=> a.type==='Revenue');
+    const exp = accounts.filter(a=> a.type==='Expense');
+    rev.forEach(a=>{
+      const v1 = m1 ? (map1[a.name]?.net || 0) : 0;
+      const v2 = m2 ? (map2[a.name]?.net || 0) : 0;
+      const variance = v2 - v1;
+      tbody.insertAdjacentHTML('beforeend', `<tr><td>${esc(a.name)}</td><td class="right">${fmt(v1)}</td><td class="right">${fmt(v2)}</td>${varianceCellHtml(variance)}</tr>`);
+    });
+    exp.forEach(a=>{
+      const v1 = m1 ? (map1[a.name]?.net || 0) : 0;
+      const v2 = m2 ? (map2[a.name]?.net || 0) : 0;
+      const variance = v2 - v1;
+      tbody.insertAdjacentHTML('beforeend', `<tr><td>${esc(a.name)}</td><td class="right">${fmt(v1)}</td><td class="right">${fmt(v2)}</td>${varianceCellHtml(variance)}</tr>`);
+    });
+    const nowNet = (rev.reduce((s,a)=> s + (map2[a.name]?.net || 0), 0) - exp.reduce((s,a)=> s + (map2[a.name]?.net || 0), 0));
+    const prevNet = (rev.reduce((s,a)=> s + (map1[a.name]?.net || 0), 0) - exp.reduce((s,a)=> s + (map1[a.name]?.net || 0), 0));
+    const netVariance = nowNet - prevNet;
+    tbody.insertAdjacentHTML('beforeend', `<tr style="font-weight:900;background:#fbfcfd"><td>Net Income</td><td class="right">${fmt(prevNet)}</td><td class="right">${fmt(nowNet)}</td>${varianceCellHtml(netVariance)}</tr>`);
+    area.appendChild(wrap);
+  } else if(currentReport === 'balance'){
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `<div style="overflow:auto"><table><thead><tr><th>Account</th><th class="right">${m1 || 'Month 1'}</th><th class="right">${m2 || 'Month 2'}</th><th class="right">Variance</th></tr></thead><tbody></tbody></table></div>`;
+    const tbody = wrap.querySelector('tbody');
+    const groups = ['Asset','Liability','Equity'];
+    groups.forEach(g=>{
+      tbody.insertAdjacentHTML('beforeend', `<tr><td colspan="4" class="section-title">${g}s</td></tr>`);
+      accounts.filter(a=> a.type === g).forEach(a=>{
+        const v1 = m1 ? (map1[a.name]?.net || 0) : 0;
+        const v2 = m2 ? (map2[a.name]?.net || 0) : 0;
+        const variance = v2 - v1;
+        tbody.insertAdjacentHTML('beforeend', `<tr><td>${esc(a.name)}</td><td class="right">${fmt(v1)}</td><td class="right">${fmt(v2)}</td>${varianceCellHtml(variance)}</tr>`);
+      });
+      const prevTotal = accounts.filter(a=> a.type===g).reduce((s,a)=> s + (map1[a.name]?.net || 0),0);
+      const nowTotal = accounts.filter(a=> a.type===g).reduce((s,a)=> s + (map2[a.name]?.net || 0),0);
+      const varTotal = nowTotal - prevTotal;
+      tbody.insertAdjacentHTML('beforeend', `<tr style="font-weight:900;background:#fbfcfd"><td>${g} Total</td><td class="right">${fmt(prevTotal)}</td><td class="right">${fmt(nowTotal)}</td>${varianceCellHtml(varTotal)}</tr>`);
+    });
+    area.appendChild(wrap);
+  }
+  const sigWrap = document.createElement('div');
+  sigWrap.className = 'footer-sigs';
+  sigWrap.innerHTML = `
+    <div class="sig-box"><div class="sig-label">Prepared By</div><input id="sigPrepared" placeholder="Prepared by"></div>
+    <div class="sig-box"><div class="sig-label">Checked By</div><input id="sigChecked" placeholder="Checked by"></div>
+    <div class="sig-box"><div class="sig-label">Approved By</div><input id="sigApproved" placeholder="Approved by"></div>
+  `;
+  area.appendChild(sigWrap);
+  const sp = $('sigPrepared'); const sc = $('sigChecked'); const sa = $('sigApproved');
+  sp.value = signatures.prepared || ''; sc.value = signatures.checked || ''; sa.value = signatures.approved || '';
+  [sp,sc,sa].forEach(inp => inp.addEventListener('input', ()=> {
+    signatures.prepared = sp.value; signatures.checked = sc.value; signatures.approved = sa.value;
+    localStorage.setItem('ae_signatures', JSON.stringify(signatures));
+  }));
+}
+$('btnReportTrial').addEventListener('click', ()=> { switchReport('trial'); });
+$('btnReportIncome').addEventListener('click', ()=> { switchReport('income'); });
+$('btnReportBalance').addEventListener('click', ()=> { switchReport('balance'); });
+$('filterMonth1').addEventListener('change', ()=> { $('reportSubTitle').textContent = ($('filterMonth1').value && $('filterMonth2').value) ? `${$('filterMonth1').value} vs ${$('filterMonth2').value}` : 'Select two months to compare'; renderReport(); });
+$('filterMonth2').addEventListener('change', ()=> { $('reportSubTitle').textContent = ($('filterMonth1').value && $('filterMonth2').value) ? `${$('filterMonth1').value} vs ${$('filterMonth2').value}` : 'Select two months to compare'; renderReport(); });
+function downloadCSV(filename, rows){
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+}
+async function downloadPDF(title, columns, rows){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  doc.setFontSize(12);
+  doc.text('ADTEMPCO COOPMART MANABO', 40, 40);
+  doc.text(title, 40, 58);
+  doc.autoTable({ startY: 80, head: [columns], body: rows, styles: { fontSize: 10, cellPadding: 6 }, theme: 'striped' });
+  doc.save(title.replace(/\s+/g,'_') + '.pdf');
+}
+$('exportReportCSV').addEventListener('click', ()=>{
+  const area = $('reportArea'); const table = area.querySelector('table'); if(!table){ showToast('Nothing to export'); return; }
+  const header = Array.from(table.querySelectorAll('thead th')).map(th=>th.textContent.trim());
+  const bodyRows = Array.from(table.querySelectorAll('tbody tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td=> td.textContent.trim()));
+  downloadCSV(`report_${currentReport}.csv`, [header, ...bodyRows]);
+  showToast('CSV exported');
+});
+$('exportReportPDF').addEventListener('click', async ()=>{
+  const area = $('reportArea'); const table = area.querySelector('table'); if(!table){ showToast('Nothing to export'); return; }
+  const header = Array.from(table.querySelectorAll('thead th')).map(th=>th.textContent.trim());
+  const bodyRows = Array.from(table.querySelectorAll('tbody tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td=> td.textContent.trim()));
+  await downloadPDF(`${$('reportMainTitle').textContent} ${$('filterMonth1')?.value || ''} vs ${$('filterMonth2')?.value || ''}`, header, bodyRows);
+  showToast('PDF exported');
+});
+$('printReport').addEventListener('click', ()=>{
+  const area = $('reportArea');
+  if(!area) { showToast('Nothing to print'); return; }
+  const w = window.open('','_blank','width=900,height=700');
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Print report</title><style>
+    body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#111}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border:1px solid #ddd}
+    .sig{margin-top:30px;display:flex;gap:20px}
+    .sig div{flex:1}
+  </style></head><body>${document.querySelector('#reportArea').innerHTML}</body></html>`;
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=> w.print(), 600);
+});
+$('backupDownloadBtn').addEventListener('click', ()=> {
+  const payload = { meta:{app:'adtempco_coopmart', createdAt:new Date().toISOString()}, accounts, journal, clients, lastRef };
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)], { type:'application/json' })); a.download = 'adtempco_backup.json'; a.click();
+  showToast('Backup downloaded');
+});
+$('restoreLocalBtn').addEventListener('click', ()=> $('restoreInput').click());
+$('restoreInput').addEventListener('change', (ev)=>{
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const payload = JSON.parse(e.target.result);
+      if(payload.accounts) accounts = payload.accounts;
+      if(payload.clients) clients = payload.clients;
+      if(payload.journal) journal = payload.journal;
+      if(payload.lastRef) lastRef = payload.lastRef;
+      localStorage.setItem('ae_accounts', JSON.stringify(accounts));
+      localStorage.setItem('ae_clients', JSON.stringify(clients));
+      localStorage.setItem('ae_journal', JSON.stringify(journal));
+      localStorage.setItem('ae_lastref', String(lastRef));
+      renderAll(); showToast('Restored from file');
+    }catch(err){ showToast('Invalid file', true); }
+  };
+  reader.readAsText(file);
+});
+const alertsRef = rdb.ref('alerts');
+alertsRef.on('child_added', snapshot => {
+  const id = snapshot.key; const alert = snapshot.val();
+  prependAlertToModal(id, alert);
+  unseenAlerts++;
+  $('alertBtn').classList.add('glow');
+  openAlertsModal();
+});
+alertsRef.on('child_changed', snapshot => { updateAlertInModal(snapshot.key, snapshot.val()); });
+function prependAlertToModal(id, alert){
+  const wrap = $('alertsList'); const div = document.createElement('div');
+  div.id = 'alert_' + id; div.style.padding = '10px 8px'; div.style.borderBottom = '1px solid #f1f6fb';
+  div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+    <div style="flex:1">
+      <strong>${esc(alert.title)}</strong> <span class="small" style="margin-left:8px">${new Date(alert.createdAt).toLocaleString()}</span>
+      <div class="small" style="margin-top:6px">${esc(alert.body)}</div>
+      <div class="small" style="margin-top:6px;color:#6b7280">Level: ${esc(alert.level || 'info')} ${alert.sendEmail? '• Email: yes' : ''}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="btn small" onclick="ackAlert('${id}')">Acknowledge</button>
+      <button class="btn small ghost" onclick="dismissAlert('${id}')">Dismiss</button>
+    </div>
+  </div>`;
+  wrap.prepend(div);
+}
+function updateAlertInModal(id, alert){
+  const el = $('alert_' + id);
+  if(!el) return;
+  el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+    <div style="flex:1">
+      <strong>${esc(alert.title)}</strong> <span class="small" style="margin-left:8px">${new Date(alert.createdAt).toLocaleString()}</span>
+      <div class="small" style="margin-top:6px">${esc(alert.body)}</div>
+      <div class="small" style="margin-top:6px;color:#6b7280">Level: ${esc(alert.level || 'info')} ${alert.sendEmail? '• Email: yes' : ''}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="btn small" onclick="ackAlert('${id}')">Acknowledge</button>
+      <button class="btn small ghost" onclick="dismissAlert('${id}')">Dismiss</button>
+    </div>
+  </div>`;
+}
+function openAlertsModal(){ $('modalBackdrop').classList.add('show'); }
+function ackAlert(id){
+  rdb.ref('alerts/' + id).update({ acknowledged: true }).then(()=> {
+    unseenAlerts = Math.max(0, unseenAlerts-1);
+    if(unseenAlerts === 0) $('alertBtn').classList.remove('glow');
+    showToast('Alert acknowledged');
+  }).catch(e=>console.error(e));
+}
+function dismissAlert(id){
+  const el = $('alert_' + id);
+  if(el) el.remove();
+  unseenAlerts = Math.max(0, unseenAlerts-1);
+  if(unseenAlerts === 0) $('alertBtn').classList.remove('glow');
+}
+$('alertBtn').addEventListener('click', ()=> { $('modalBackdrop').classList.add('show'); unseenAlerts = 0; $('alertBtn').classList.remove('glow'); });
+$('dismissAlerts').addEventListener('click', ()=> $('modalBackdrop').classList.remove('show'));
+$('ackAlerts').addEventListener('click', ()=> {
+  alertsRef.once('value').then(snap=>{
+    snap.forEach(child => rdb.ref('alerts/' + child.key).update({ acknowledged:true }).catch(e=>console.error(e)));
+    unseenAlerts = 0; $('alertBtn').classList.remove('glow'); $('modalBackdrop').classList.remove('show'); showToast('All alerts acknowledged');
+  });
+});
+$('postAlertBtn').addEventListener('click', async ()=>{
+  if(!currentUser){ $('adminAlertMsg').textContent = 'Login required'; return; }
+  if(currentUser.role !== 'Admin'){ $('adminAlertMsg').textContent = 'Only Admins can post alerts'; return; }
+  const title = $('alertTitle').value.trim(); const body = $('alertBody').value.trim();
+  const level = $('alertLevel').value.trim() || 'info'; const sendEmail = !!$('alertSendEmail').checked;
+  if(!title || !body){ $('adminAlertMsg').textContent = 'Title and body required'; return; }
+  $('adminAlertMsg').textContent = '';
+  const newRef = rdb.ref('alerts').push();
+  const payload = { title, body, level, createdAt: new Date().toISOString(), sendEmail, createdBy: currentUser.uid, acknowledged:false };
+  try{ await newRef.set(payload); $('alertTitle').value=''; $('alertBody').value=''; $('alertLevel').value=''; $('alertSendEmail').checked=false; showToast('Alert posted'); }catch(e){ console.error(e); showToast('Failed to post alert', true); }
+});
+function renderAll(){ populateMonthFilters(); renderAccounts(); renderClients(); renderJournalTable(); renderLedger(); setTimeout(()=> renderDashboard(), 80); }
+function renderDashboard(){ const totalRev = accounts.filter(a=> a.type==='Revenue').reduce((s,a)=> s + journal.filter(j=> j.account===a.name).reduce((ss,e)=> ss + ((e.credit||0)-(e.debit||0)),0), 0); const totalExp = accounts.filter(a=> a.type==='Expense').reduce((s,a)=> s + journal.filter(j=> j.account===a.name).reduce((ss,e)=> ss + ((e.debit||0)-(e.credit||0)),0), 0); $('dashRevenue').textContent = fmt(totalRev); $('dashExpense').textContent = fmt(totalExp); $('dashNet').textContent = fmt(totalRev - totalExp); }
+function renderSettings(){ }
+setTimeout(()=> {
+  if(!auth.currentUser){ $('authCardWrapper').style.display='block'; } else { $('authCardWrapper').style.display='none'; }
+  if(document.querySelectorAll('#journalLinesBody tr').length===0){ addLineRow(); addLineRow(); }
+  renderAll();
+}, 260);
+window.viewJournal = viewJournal;
+document.addEventListener('DOMContentLoaded', ()=> {
+  $('btnReportBalance').classList.add('active');
+  switchReport('balance');
+});
+</script>
+</body>
+</html>
